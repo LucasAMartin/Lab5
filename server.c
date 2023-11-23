@@ -12,7 +12,7 @@
 #define MAX_CLIENTS 200 // Maximum number of clients
 #define BUFFER_SIZE 256
 #define LISTEN_BACKLOG 5
-#define SLEEP_DURATION 4
+#define SLEEP_DURATION 2
 
 int client_sockets[MAX_CLIENTS]; // Array to store the client sockets
 int num_clients = 0;             // Counter for the number of clients
@@ -214,8 +214,6 @@ int main(int argc, char *argv[])
         pthread_join(chef_thread[i], NULL);
     }
 
-    // Wait for the accept thread to finish
-    pthread_join(accept_thread, NULL);
     printf("The restaurant is closing.\n");
 
     // Add a delay before closing the socket
