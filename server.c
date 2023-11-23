@@ -34,15 +34,15 @@ void *chef(void *arg)
 
     while (1)
     {
-        int time = rand() % 3 + 2;
-        sleep(rand() % 3 + 2);
+        int time = (rand() % 2) * 2 + 2;
+        sleep(time);
         pthread_mutex_lock(&lock);
         if (total_burgers_made < max_burgers)
         {
             burgers++;
             burgers_made++;
             total_burgers_made++;
-            printf("\nChef %d made a burger in %d seconds. Burgers Available: %d, Burgers made: %d\n", id, time, burgers, total_burgers_made);
+            printf("Chef %d made a burger in %d seconds. Burgers Available: %d, Burgers made: %d\n", id, time, burgers, total_burgers_made);
         }
         pthread_mutex_unlock(&lock);
         if (total_burgers_made >= max_burgers)
@@ -58,25 +58,32 @@ void *chef(void *arg)
 void *client_handler(void *arg)
 {
     int sock = *((int *)arg);
-
-    // Read the number of burgers wanted from the client
     char buffer[BUFFER_SIZE];
     read(sock, buffer, 255);
     int burgers_wanted = atoi(buffer);
-
     char message[BUFFER_SIZE];
     int burgers_served = 0;
+
     while (1)
     {
-        sleep(rand() % 5 + 1);
         pthread_mutex_lock(&lock);
         if (burgers > 0 && burgers_served < burgers_wanted)
         {
             burgers--;
             burgers_served++;
-            sprintf(message, "You got a burger! Burgers left: %d\n", burgers);
+            sprintf(message, "You got a burger!");
             printf("Serving a burger to client %d. Burgers left: %d. Client %d still wants %d burgers.\n", sock, burgers, sock, burgers_wanted - burgers_served);
             write(sock, message, strlen(message));
+
+            // Wait for acknowledgement from the client
+            bzero(buffer, BUFFER_SIZE);
+            read(sock, buffer, 255);
+            if (strncmp(buffer, "Ready for next burger", strlen("Ready for next burger") + 1) != 0)
+            {
+                printf("Client %d is not ready for the next burger.\n", sock);
+                burgers++;
+                burgers_served--;
+            }
         }
         else if (burgers == 0 && burgers_served == max_burgers)
         {
@@ -84,6 +91,7 @@ void *client_handler(void *arg)
             break;
         }
         pthread_mutex_unlock(&lock);
+
         if (burgers_served >= burgers_wanted)
         {
             printf("Client %d no longer wants burgers.\n", sock);
